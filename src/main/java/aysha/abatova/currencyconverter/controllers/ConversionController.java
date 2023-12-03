@@ -31,6 +31,11 @@ public class ConversionController {
         return new ComissionDto();
     }
 
+    @ModelAttribute("conversion")
+    public ConversionDto conversionDto() {
+        return new ConversionDto();
+    }
+
     @GetMapping("/officialrates")
     public RatesPresenter rates(@RequestParam(name = "date") String date,
             @RequestParam(name = "currency", defaultValue = "USD") String charCode) {
