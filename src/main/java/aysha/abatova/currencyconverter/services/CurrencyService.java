@@ -12,11 +12,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.client.RestTemplate;
 
+import aysha.abatova.currencyconverter.dtos.ComissionDto;
 import aysha.abatova.currencyconverter.dtos.CurrencyRateExternalDto;
 import aysha.abatova.currencyconverter.entities.Account;
 import aysha.abatova.currencyconverter.entities.Currency;
+import aysha.abatova.currencyconverter.exceptions.InvalidCurrencyCharCode;
 import aysha.abatova.currencyconverter.mappers.ExternalCurrencyMapper;
 import aysha.abatova.currencyconverter.repositories.AccountRepository;
 import aysha.abatova.currencyconverter.repositories.CurrencyRepository;
@@ -96,6 +99,16 @@ public class CurrencyService {
     private String createStringURLForRate(String date, String charCode) {
         StringBuilder builder = new StringBuilder();
         return builder.append(apiURL).append("/").append(charCode.toUpperCase()).append("/").append(date).toString();
+
+    }
+
+    public void setComission(@Validated ComissionDto comissionDto) {
+        Optional<Currency> optCurrency = currencyRepository.findByCharCode(comissionDto.getCharCode());
+        if (!optCurrency.isPresent()) throw new InvalidCurrencyCharCode(comissionDto.getCharCode());
+        Currency currency = optCurrency.get();
+        currency.setComissionFrom(-comissionDto.getComissionFrom());
+        currency.setComissionTo(comissionDto.getComissionTo());
+        currencyRepository.save(currency);
 
     }
 
