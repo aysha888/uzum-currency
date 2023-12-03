@@ -87,6 +87,18 @@ public class CurrencyService {
         return currencyRepository.save(existing.get());
     }
 
+    public CurrencyRateExternalDto getRate(String date, String charCode) {
+        String url = createStringURLForRate(date, charCode);
+        return restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<List<CurrencyRateExternalDto>>() {}).getBody().get(0);
+        
+    }
+
+    private String createStringURLForRate(String date, String charCode) {
+        StringBuilder builder = new StringBuilder();
+        return builder.append(apiURL).append("/").append(charCode.toUpperCase()).append("/").append(date).toString();
+
+    }
+
  
 
 
