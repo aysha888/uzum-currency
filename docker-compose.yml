@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:latest
+    container_name: postgres-container
+    environment:
+      POSTGRES_DB: currency_converter
+      POSTGRES_USER: currency-master
+      POSTGRES_PASSWORD: uzum-onelove
+    ports:
+      - "5432:5432"
+
+  currency-converter-app:
+    image: currency-converter-app-aysha:latest  
+    container_name: currency-converter-container
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/currency_converter
+      SPRING_DATASOURCE_USERNAME: currency-master
+      SPRING_DATASOURCE_PASSWORD: uzum-onelove
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres-db
