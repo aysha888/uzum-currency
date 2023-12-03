@@ -20,10 +20,12 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.client.RestTemplate;
 
 import aysha.abatova.currencyconverter.dtos.ComissionDto;
+import aysha.abatova.currencyconverter.dtos.ConversionDto;
 import aysha.abatova.currencyconverter.dtos.CurrencyRateExternalDto;
 import aysha.abatova.currencyconverter.entities.Account;
 import aysha.abatova.currencyconverter.entities.Currency;
 import aysha.abatova.currencyconverter.exceptions.InvalidCurrencyCharCode;
+import aysha.abatova.currencyconverter.exceptions.NotEnoughCurrency;
 import aysha.abatova.currencyconverter.mappers.ExternalCurrencyMapper;
 import aysha.abatova.currencyconverter.repositories.AccountRepository;
 import aysha.abatova.currencyconverter.repositories.CurrencyRepository;
@@ -167,6 +169,23 @@ public class CurrencyService {
 
         return result.toString();
   
+    }
+
+    @Transactional
+    public String convert(ConversionDto conversionDto) throws IOException {
+       String result = convertDry(conversionDto.getFrom(), conversionDto.getTo(), conversionDto.getAmount());
+       BigDecimal toWithdraw = new BigDecimal(result);
+       // double request to db TODO: optimise
+       Currency currencyFrom = currencyRepository.findByCharCode(conversionDto.getFrom()).get();
+       Currency currencyTo = currencyRepository.findByCharCode(conversionDto.getTo()).get();
+       Account accountFrom = accountRepository.findByCurrencyId(currencyFrom.getId()).get();
+       Account accountTo = accountRepository.findByCurrencyId(currencyTo.getId()).get();
+       int compared = accountTo.getBalance().compareTo(toWithdraw);
+       if (compared < 0) throw new NotEnoughCurrency(currencyTo.getCharCode());
+       accountFrom.setBalance(accountFrom.getBalance().add(conversionDto.getAmount()));
+       accountTo.setBalance(accountTo.getBalance().subtract(toWithdraw));
+       return result;
+
     }
 
  

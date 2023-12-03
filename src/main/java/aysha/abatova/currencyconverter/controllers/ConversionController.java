@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import aysha.abatova.currencyconverter.dtos.ConversionDto;
 import aysha.abatova.currencyconverter.dtos.ComissionDto;
 import aysha.abatova.currencyconverter.dtos.CurrencyRateExternalDto;
 import aysha.abatova.currencyconverter.presenters.ConversionPresenter;
@@ -48,6 +49,13 @@ public class ConversionController {
     public ConversionPresenter convertDry(@RequestParam(name = "from") String fromCharCode, @RequestParam(name = "to") String toCharCode, @RequestParam(name = "amount") BigDecimal amount) throws IOException {
         String result = currencyService.convertDry(fromCharCode, toCharCode, amount);
         return new ConversionPresenter(result);
+    }
+
+    @PostMapping("/convert")
+    public ConversionPresenter convert(@RequestBody ConversionDto conversionDto) throws IOException {
+        String conversionResult =  currencyService.convert(conversionDto);
+        return new ConversionPresenter(conversionResult);
+       
     }
 
 }
