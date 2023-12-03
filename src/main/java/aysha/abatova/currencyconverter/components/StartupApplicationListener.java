@@ -1,6 +1,9 @@
 package aysha.abatova.currencyconverter.components;
 
 import aysha.abatova.currencyconverter.services.CurrencyService;
+
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
@@ -19,7 +22,7 @@ public class StartupApplicationListener {
 
 
     @EventListener
-    public void onApplicationEvent(ContextRefreshedEvent event) throws  Exception {
+    public void onApplicationEvent(ContextRefreshedEvent event) throws  IOException {
         currencyService.getRates();
     }
 }

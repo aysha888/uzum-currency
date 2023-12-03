@@ -1,6 +1,8 @@
 package aysha.abatova.currencyconverter.services;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import aysha.abatova.currencyconverter.dtos.CurrencyRateExternalDto;
+import aysha.abatova.currencyconverter.entities.Account;
 import aysha.abatova.currencyconverter.entities.Currency;
+import aysha.abatova.currencyconverter.mappers.ExternalCurrencyMapper;
+import aysha.abatova.currencyconverter.repositories.AccountRepository;
+import aysha.abatova.currencyconverter.repositories.CurrencyRepository;
 
 
 
@@ -34,11 +40,16 @@ public class CurrencyService {
     @Autowired
     private RestTemplate restTemplate;
 
-   
+   @Autowired
+   private CurrencyRepository currencyRepository;
+
+
+   @Autowired
+   private AccountRepository accountRepository;
     
 
 
-    public void getRates() throws Exception {
+    public void getRates() throws IOException {
         ResponseEntity<List<CurrencyRateExternalDto>> response = restTemplate.exchange(
             apiURL,
             HttpMethod.GET,
@@ -55,7 +66,28 @@ public class CurrencyService {
         return currencies.stream().map(this::upsertCurrency).toList();
     }
 
+    private void populateAccountsIfNotPresent(List<Currency> currencies) {
+        List<Account> accounts = accountRepository.findAll();
+        Boolean alreadyHaveAccounts = accounts.size() > 1; // because we have one after migration it's uzs
+        if (alreadyHaveAccounts) return;
+        accounts = currencies.stream().map(ExternalCurrencyMapper::mapToAccount).collect(Collectors.toList());
+        accountRepository.saveAll(accounts);
+    }
+
     
    
+    // here i use simple implementation. Because we have currencies after start of application, 
+    // there will never be situation where app will try to insert two same currencies. Except if it's a new currency and two users use this method at the same.
+    // Which i deem highly unlikely.
+    private Currency upsertCurrency(Currency currency) {
+        Optional<Currency> existing = currencyRepository.findByCharCode(currency.getCharCode());
+        if (!existing.isPresent()) return currencyRepository.save(currency);
+        existing.get().setDate(currency.getDate());
+        existing.get().setRate(currency.getRate());
+        return currencyRepository.save(existing.get());
+    }
+
  
+
+
 }
