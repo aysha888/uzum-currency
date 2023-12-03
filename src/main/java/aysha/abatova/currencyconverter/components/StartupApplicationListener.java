@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 
 
-import java.io.IOException;
+
 
 
 @Component
@@ -19,7 +19,7 @@ public class StartupApplicationListener {
 
 
     @EventListener
-    public void onApplicationEvent(ContextRefreshedEvent event) throws  IOException {
+    public void onApplicationEvent(ContextRefreshedEvent event) throws  Exception {
         currencyService.getRates();
     }
 }
