@@ -1,4 +1,4 @@
-package aysha.abatova.currencyconverter.dto;
+package aysha.abatova.currencyconverter.dtos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
