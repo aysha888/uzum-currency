@@ -1,5 +1,8 @@
 package aysha.abatova.currencyconverter.controllers;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import aysha.abatova.currencyconverter.dtos.ComissionDto;
 import aysha.abatova.currencyconverter.dtos.CurrencyRateExternalDto;
+import aysha.abatova.currencyconverter.presenters.ConversionPresenter;
 import aysha.abatova.currencyconverter.presenters.RatesPresenter;
 import aysha.abatova.currencyconverter.presenters.SuccessPresenter;
 import aysha.abatova.currencyconverter.services.CurrencyService;
@@ -38,6 +42,12 @@ public class ConversionController {
     public SuccessPresenter setComission(@RequestBody ComissionDto comissionDto) {
         currencyService.setComission(comissionDto);
         return new SuccessPresenter();
+    }
+
+    @GetMapping("/convert")
+    public ConversionPresenter convertDry(@RequestParam(name = "from") String fromCharCode, @RequestParam(name = "to") String toCharCode, @RequestParam(name = "amount") BigDecimal amount) throws IOException {
+        String result = currencyService.convertDry(fromCharCode, toCharCode, amount);
+        return new ConversionPresenter(result);
     }
 
 }

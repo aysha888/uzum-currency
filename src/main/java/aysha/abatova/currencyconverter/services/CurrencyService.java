@@ -1,6 +1,10 @@
 package aysha.abatova.currencyconverter.services;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,6 +43,14 @@ import aysha.abatova.currencyconverter.repositories.CurrencyRepository;
 public class CurrencyService {
     @Value("${apiURL}")
     private String apiURL;
+
+    private static final String UZS_CODE = "860";
+
+    private static final String CBU_DATE_FORMAT = "dd.MM.yyyy";
+    private static final BigDecimal COMMISSION_DIVIDER = new BigDecimal(10000); // i decided that i would store comission in 0.00 of percent, but in integer. so 25 means in fact 0.25% comission
+
+
+    private final SimpleDateFormat format = new SimpleDateFormat(CBU_DATE_FORMAT);
     
     @Autowired
     private RestTemplate restTemplate;
@@ -102,6 +114,17 @@ public class CurrencyService {
 
     }
 
+    private BigDecimal comission(BigDecimal rate, int comission) {
+        Boolean decreaseRate = comission < 0;
+        comission = Math.abs(comission);
+        BigDecimal normilizedComission = new BigDecimal(comission).divide(COMMISSION_DIVIDER, 20, RoundingMode.HALF_UP);  
+        BigDecimal coef = new BigDecimal(1.000000).subtract(normilizedComission);
+        if (decreaseRate) return rate.multiply(coef);
+        
+        return new BigDecimal(1.000000).divide(coef, 20, RoundingMode.HALF_UP).multiply(rate);
+             
+    }
+
     public void setComission(@Validated ComissionDto comissionDto) {
         Optional<Currency> optCurrency = currencyRepository.findByCharCode(comissionDto.getCharCode());
         if (!optCurrency.isPresent()) throw new InvalidCurrencyCharCode(comissionDto.getCharCode());
@@ -110,6 +133,40 @@ public class CurrencyService {
         currency.setComissionTo(comissionDto.getComissionTo());
         currencyRepository.save(currency);
 
+    }
+
+
+    public String convertDry(String fromCharCode, String toCharCode, BigDecimal amount) throws IOException {
+        
+        Optional<Currency> optCurrencyFrom = currencyRepository.findByCharCode(fromCharCode);
+        Optional<Currency> optCurrencyTo = currencyRepository.findByCharCode(toCharCode);
+        if (!optCurrencyFrom.isPresent()) throw new InvalidCurrencyCharCode(fromCharCode);
+        if (!optCurrencyTo.isPresent()) throw new InvalidCurrencyCharCode(toCharCode);
+
+        Currency currencyFrom = currencyRepository.findByCharCode(fromCharCode).get();
+        Currency currencyTo = currencyRepository.findByCharCode(toCharCode).get();
+
+        String currentDate = format.format(new Date());
+        // TODO: on the weekends and holidays, all requests will be sent to central bank, because data will be different.
+        // banks don't work on weekends and holidays, so api will always return us rates on last working day. Solution is to add calendar
+        // easy solution is to check the day for weekends, but holidays will stay as edge case.
+        if ((!currencyFrom.getDate().equals(currentDate) && !currencyFrom.getNumCode().equals(UZS_CODE)) || (!currencyTo.getDate().equals(currentDate) && !currencyTo.getNumCode().equals(UZS_CODE))) {
+            getRates();
+            currencyFrom = currencyRepository.findByCharCode(fromCharCode).get();
+            currencyTo = currencyRepository.findByCharCode(toCharCode).get();
+        }
+        
+        
+        BigDecimal fromRate = currencyFrom.getNumCode().equals(UZS_CODE) ? currencyFrom.getRate() : comission(currencyFrom.getRate(), currencyFrom.getComissionFrom());
+        BigDecimal toRate = currencyTo.getNumCode().equals(UZS_CODE) ? currencyTo.getRate() : comission(currencyTo.getRate(), currencyTo.getComissionTo());
+
+        BigDecimal result = amount.multiply(fromRate).multiply(BigDecimal.valueOf(currencyFrom.getNominal()))
+                            .divide(toRate, 6, RoundingMode.HALF_UP)
+                            .divide(BigDecimal.valueOf(currencyTo.getNominal()), 4, RoundingMode.HALF_UP).setScale(6);
+
+
+        return result.toString();
+  
     }
 
  
